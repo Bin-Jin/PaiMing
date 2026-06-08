@@ -2,10 +2,15 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MetaMonitor TOP10 积分榜海报生成器</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* 全局应用 border-box 避免 padding 撑破容器 */
+        * {
+            box-sizing: border-box;
+        }
+
         /* 网页整体样式 */
         body {
             font-family: 'Segoe UI', "Microsoft YaHei", sans-serif;
@@ -22,7 +27,8 @@
 
         /* 编辑区域容器样式 */
         .editor-container {
-            width: 400px;
+            width: 100%;
+            max-width: 400px; /* 适配自适应最大宽度 */
             background-color: #161b22;
             padding: 20px;
             border-radius: 16px;
@@ -85,6 +91,7 @@
             outline: none;
             transition: border-color 0.2s;
             font-size: 14px;
+            width: 100%;
         }
 
         .setting-group input:focus {
@@ -99,10 +106,11 @@
         }
 
         .editor-row label {
-            width: 30px;
+            width: 25px;
             color: #d1d8e0;
             font-weight: bold;
             text-align: right;
+            flex-shrink: 0;
         }
 
         .editor-row input {
@@ -114,6 +122,7 @@
             border-radius: 8px;
             outline: none;
             transition: border-color 0.2s;
+            min-width: 0; /* 防止 input 撑破 flex 容器 */
         }
 
         .editor-row input:focus {
@@ -122,7 +131,7 @@
 
         /* 按钮样式 */
         .btn-generate {
-            padding: 12px 24px;
+            padding: 14px 24px;
             background: linear-gradient(90deg, #ffd700, #ff8c00);
             color: #0d1117;
             border: none;
@@ -133,6 +142,7 @@
             box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
             transition: transform 0.2s;
             margin-top: 10px;
+            width: 100%;
         }
 
         .btn-generate:hover {
@@ -145,11 +155,14 @@
             flex-direction: column;
             align-items: center;
             gap: 20px;
+            width: 100%;
+            max-width: 375px;
         }
 
         /* 海报容器样式 */
         .poster-container {
-            width: 375px;
+            width: 100%;
+            max-width: 375px;
             background-color: #0f172a;
             color: white;
             border-radius: 24px;
@@ -215,12 +228,14 @@
             color: #ffb800; 
             letter-spacing: 1px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 140, 0, 0.4);
+            word-break: break-word; /* 防止长标题溢出 */
         }
         .poster-header p {
             margin: 5px 0 0 0;
             font-size: 13px;
             color: #d1d8e0;
             opacity: 0.8;
+            word-break: break-word;
         }
 
         /* 积分列表 */
@@ -280,6 +295,7 @@
             font-weight: 900;
             font-size: 16px;
             z-index: 1;
+            flex-shrink: 0;
         }
 
         /* 1-10名勋章具体颜色 */
@@ -313,8 +329,13 @@
             flex-grow: 1;
             color: #d1d8e0;
             font-size: 15px;
-            margin-right: 15px;
+            margin-right: 10px;
             font-weight: 500;
+            /* 防止超长名称撑破海报，添加省略号 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px; 
         }
 
         /* 前三名姓名颜色 */
@@ -328,20 +349,15 @@
             font-size: 17px;
             font-weight: bold;
             font-family: 'Consolas', 'Monaco', monospace;
+            flex-shrink: 0;
+            text-align: right;
+            min-width: 75px; /* 给予最小宽度保证结构稳定 */
         }
 
         /* 前三名分数颜色 */
         .rank-row-1 .rank-item-score { color: #ffd700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
         .rank-row-2 .rank-item-score { color: #e2e8f0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
         .rank-row-3 .rank-item-score { color: #f59e0b; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
-
-        /* 分数单位 */
-        .rank-item-unit {
-            font-size: 12px;
-            margin-left: 2px;
-            opacity: 0.6;
-            font-weight: normal;
-        }
 
         /* 海报底部 */
         .poster-footer {
@@ -353,6 +369,39 @@
             padding-top: 15px;
             z-index: 2;
             position: relative;
+        }
+
+        /* ========================================= */
+        /* 📱 响应式布局：适配手机端和平板端 */
+        /* ========================================= */
+        @media (max-width: 860px) {
+            body {
+                flex-direction: column; /* 改为上下排列 */
+                align-items: center;
+                padding: 20px 15px;
+                gap: 30px;
+            }
+
+            .editor-container {
+                width: 100%;
+                max-width: 100%; /* 手机端撑满屏幕 */
+                max-height: none; /* 手机端侧边栏不需要内部滚动条，自然展开 */
+                overflow-y: visible;
+                padding: 15px;
+            }
+
+            .editor-row input {
+                font-size: 16px; /* 提升手机端输入框字体大小，防止 iOS 自动放大屏幕 */
+            }
+
+            .poster-wrapper {
+                margin-bottom: 40px; /* 底部留白 */
+            }
+            
+            /* 调整手机端输入分数框的宽度比例 */
+            .editor-row input[placeholder="分数"] {
+                width: 90px !important; 
+            }
         }
     </style>
 </head>
@@ -370,17 +419,18 @@
             </div>
             <div class="setting-group">
                 <label>副标题 / 描述</label>
-                <input type="text" id="input-sub-title" value="2026年6月 · 全球积分风云榜" oninput="updatePosterHeader()">
+                <input type="text" id="input-sub-title" value="2026年6月 · 会员积分排行榜" oninput="updatePosterHeader()">
             </div>
         </div>
 
         <div id="editorRows">
-            </div>
+            <!-- JS自动渲染 -->
+        </div>
         <button class="btn-generate" onclick="generatePoster()">📸 点击生成海报并下载</button>
     </div>
 
     <div class="poster-wrapper">
-        <p style="color:#ffd700; margin:0; opacity:0.8;">预览区域</p>
+        <p style="color:#ffd700; margin:0; opacity:0.8; font-weight:bold;">✨ 实时海报预览</p>
         <div class="poster-container" id="poster">
             <div class="poster-glow"></div>
             
@@ -393,7 +443,8 @@
             </div>
 
             <ul class="leaderboard" id="listData">
-                </ul>
+                <!-- JS自动渲染 -->
+            </ul>
 
             <div class="poster-footer">
                 METAMONITOR<br>
@@ -451,12 +502,14 @@
                 else if (index === 2) li.classList.add('rank-row-3');
                 else li.classList.add('rank-row-4-10');
 
+                // 【修复核心】：将“左侧（名次+名字）”与“右侧（积分）”分开包裹
+                // 利用 li 自带的 justify-content: space-between 将积分完美推到最右侧并对齐
                 li.innerHTML = `
-                    <div class="editor-row">
+                    <div style="display: flex; align-items: center; flex-grow: 1; min-width: 0;">
                         <div class="medal"><span style="transform: translateY(-1px); display: block;">${index + 1}</span></div>
                         <div class="rank-item-name">${user.name}</div>
-                        <div class="rank-item-score">${formatScore(user.score)}<span class="rank-item-unit"> </span></div>
                     </div>
+                    <div class="rank-item-score">${formatScore(user.score)}</div>
                 `;
                 listContainer.appendChild(li);
             });
@@ -468,7 +521,7 @@
                 <div class="editor-row">
                     <label>${index + 1}</label>
                     <input type="text" value="${user.name}" placeholder="姓名" oninput="updateName(${index}, this.value)">
-                    <input type="text" value="${formatScore(user.score)}" placeholder="分数" oninput="updateScore(${index}, this.value)" style="width:80px; text-align:right;">
+                    <input type="text" value="${formatScore(user.score)}" placeholder="分数" oninput="updateScore(${index}, this.value)" style="width:85px; text-align:right;">
                 </div>
             `;
             editorContainer.insertAdjacentHTML('beforeend', rowHTML);

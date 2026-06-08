@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMonitor TOP10 积分榜海报生成器</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        /* 网页整体样式 */
+        body {
+            font-family: 'Segoe UI', "Microsoft YaHei", sans-serif;
+            background-color: #0d1117; /* 深色背景 */
+            color: white;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px;
+            margin: 0;
+            gap: 40px;
+        }
+
+        /* 编辑区域容器样式 */
+        .editor-container {
+            width: 400px;
+            background-color: #161b22;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        /* 隐藏滚动条让侧边栏更好看 */
+        .editor-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .editor-container::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+        .editor-container::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 3px;
+        }
+
+        .editor-container h2 {
+            margin-top: 0;
+            color: #ffd700;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        /* 主题标题编辑区 */
+        .editor-header-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 20px;
+            margin-bottom: 5px;
+            border-bottom: 1px dashed #30363d;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .setting-group label {
+            color: #8b949e;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .setting-group input {
+            padding: 10px 12px;
+            background-color: #0d1117;
+            color: white;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-size: 14px;
+        }
+
+        .setting-group input:focus {
+            border-color: #ffd700;
+        }
+
+        .editor-row {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .editor-row label {
+            width: 30px;
+            color: #d1d8e0;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .editor-row input {
+            flex-grow: 1;
+            padding: 10px;
+            background-color: #0d1117;
+            color: white;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .editor-row input:focus {
+            border-color: #ffd700;
+        }
+
+        /* 按钮样式 */
+        .btn-generate {
+            padding: 12px 24px;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            color: #0d1117;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+        }
+
+        /* 海报预览区域容器样式 */
+        .poster-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* 海报容器样式 */
+        .poster-container {
+            width: 375px;
+            background-color: #0f172a;
+            color: white;
+            border-radius: 24px;
+            padding: 30px 20px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+
+        /* 顶部发光球装饰 */
+        .poster-glow {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 2px;
+            box-shadow: 0 0 120px 80px rgba(255, 215, 0, 0.15);
+            z-index: 1;
+        }
+
+        /* M Logo */
+        .poster-logo {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            margin: 0 auto 15px auto;
+            position: relative;
+            background-color: #1e2532;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #30363d;
+            z-index: 2;
+        }
+
+        .poster-logo::before {
+            content: 'M';
+            font-size: 40px;
+            font-weight: 900;
+            position: relative;
+            transform: translateY(-2px);
+            line-height: 1;
+            color: #ffb800; 
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(184, 134, 11, 0.6);
+            z-index: 1;
+        }
+
+        /* 海报标题 */
+        .poster-header {
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 2;
+        }
+        .poster-header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 800;
+            color: #ffb800; 
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 140, 0, 0.4);
+        }
+        .poster-header p {
+            margin: 5px 0 0 0;
+            font-size: 13px;
+            color: #d1d8e0;
+            opacity: 0.8;
+        }
+
+        /* 积分列表 */
+        .leaderboard {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .leaderboard li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-radius: 12px;
+            background-color: #1e293b;
+            position: relative;
+        }
+
+        /* 前三名立体行背景和发光 */
+        .rank-row-1 {
+            background-color: #24221a;
+            border: 1px solid #4a3f16;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .rank-row-2 {
+            background-color: #21262d;
+            border: 1px solid #3d4754;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .rank-row-3 {
+            background-color: #261f1b;
+            border: 1px solid #52361b;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .rank-row-4-10 {
+            background-color: #1e293b;
+            border: 1px solid #2d3748;
+        }
+
+        /* 勋章/奖牌样式 */
+        .medal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 12px;
+            font-weight: 900;
+            font-size: 16px;
+            z-index: 1;
+        }
+
+        /* 1-10名勋章具体颜色 */
+        .rank-row-1 .medal { 
+            background-color: #ffd700; 
+            color: #554411; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(184, 134, 11, 0.6);
+        }
+
+        .rank-row-2 .medal { 
+            background-color: #e2e8f0; 
+            color: #475569; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(148, 163, 184, 0.6);
+        }
+
+        .rank-row-3 .medal { 
+            background-color: #d97706; 
+            color: #ffffff; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(146, 64, 14, 0.6);
+        }
+
+        .rank-row-4-10 .medal { 
+            background-color: #0d1117; 
+            border: 2px solid #30363d; 
+            color: #94a3b8; 
+            box-sizing: border-box;
+        }
+
+        /* 行内容：姓名 */
+        .rank-item-name {
+            flex-grow: 1;
+            color: #d1d8e0;
+            font-size: 15px;
+            margin-right: 15px;
+            font-weight: 500;
+        }
+
+        /* 前三名姓名颜色 */
+        .rank-row-1 .rank-item-name { color: #ffd700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+        .rank-row-2 .rank-item-name { color: #e2e8f0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+        .rank-row-3 .rank-item-name { color: #f59e0b; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+
+        /* 行内容：分数 */
+        .rank-item-score {
+            color: #d1d8e0;
+            font-size: 17px;
+            font-weight: bold;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* 前三名分数颜色 */
+        .rank-row-1 .rank-item-score { color: #ffd700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+        .rank-row-2 .rank-item-score { color: #e2e8f0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+        .rank-row-3 .rank-item-score { color: #f59e0b; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+
+        /* 分数单位 */
+        .rank-item-unit {
+            font-size: 12px;
+            margin-left: 2px;
+            opacity: 0.6;
+            font-weight: normal;
+        }
+
+        /* 海报底部 */
+        .poster-footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 11px;
+            color: rgba(209, 216, 224, 0.4);
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+            z-index: 2;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="editor-container">
+        <h2>📊 数据编辑器</h2>
+        <p style="color:#d1d8e0; font-size:13px; margin:0 0 15px 0; opacity:0.8">修改下方信息，右侧海报将实时更新效果。</p>
+        
+        <!-- 新增的主题编辑区域 -->
+        <div class="editor-header-settings">
+            <div class="setting-group">
+                <label>主标题</label>
+                <input type="text" id="input-main-title" value="MetaMonitor 月度之星" oninput="updatePosterHeader()">
+            </div>
+            <div class="setting-group">
+                <label>副标题 / 描述</label>
+                <input type="text" id="input-sub-title" value="2026年6月 · 全球积分风云榜" oninput="updatePosterHeader()">
+            </div>
+        </div>
+
+        <div id="editorRows">
+            </div>
+        <button class="btn-generate" onclick="generatePoster()">📸 点击生成海报并下载</button>
+    </div>
+
+    <div class="poster-wrapper">
+        <p style="color:#ffd700; margin:0; opacity:0.8;">预览区域</p>
+        <div class="poster-container" id="poster">
+            <div class="poster-glow"></div>
+            
+            <div class="poster-logo"></div>
+
+            <div class="poster-header">
+                <!-- 添加了 ID 以便 JavaScript 动态更新 -->
+                <h1 id="poster-main-title">MetaMonitor 月度之星</h1>
+                <p id="poster-sub-title">2026年6月 · 会员积分排行榜</p>
+            </div>
+
+            <ul class="leaderboard" id="listData">
+                </ul>
+
+            <div class="poster-footer">
+                METAMONITOR<br>
+                <span style="font-size: 9px; opacity: 0.6; text-transform: uppercase;">Generated By System</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 初始前十名积分数据
+        const top10Data = [
+            { name: "Quantum_Core", score: 99840 },
+            { name: "CyberNinja", score: 87520 },
+            { name: "Data_Oracle", score: 81200 },
+            { name: "Neon_Striker", score: 79150 },
+            { name: "Void_Walker", score: 74300 },
+            { name: "System_Admin", score: 68900 },
+            { name: "Glitch_Hunter", score: 65420 },
+            { name: "Node_Master", score: 61000 },
+            { name: "Packet_Sniffer", score: 58200 },
+            { name: "Binary_Ghost", score: 52100 }
+        ];
+
+        // 格式化数字
+        function formatScore(score) {
+            return score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // 还原数字
+        function unformatScore(formattedScore) {
+            return parseInt(formattedScore.replace(/,/g, ''), 10) || 0;
+        }
+
+        const editorContainer = document.getElementById('editorRows');
+        const listContainer = document.getElementById('listData');
+
+        // 更新海报主题标题
+        function updatePosterHeader() {
+            const mainTitle = document.getElementById('input-main-title').value;
+            const subTitle = document.getElementById('input-sub-title').value;
+            
+            document.getElementById('poster-main-title').innerText = mainTitle || ' ';
+            document.getElementById('poster-sub-title').innerText = subTitle || ' ';
+        }
+
+        // 实时更新列表
+        function updateData() {
+            listContainer.innerHTML = '';
+            
+            top10Data.forEach((user, index) => {
+                const li = document.createElement('li');
+                
+                if (index === 0) li.classList.add('rank-row-1');
+                else if (index === 1) li.classList.add('rank-row-2');
+                else if (index === 2) li.classList.add('rank-row-3');
+                else li.classList.add('rank-row-4-10');
+
+                li.innerHTML = `
+                    <div class="editor-row">
+                        <div class="medal"><span style="transform: translateY(-1px); display: block;">${index + 1}</span></div>
+                        <div class="rank-item-name">${user.name}</div>
+                        <div class="rank-item-score">${formatScore(user.score)}<span class="rank-item-unit"> </span></div>
+                    </div>
+                `;
+                listContainer.appendChild(li);
+            });
+        }
+
+        // 渲染编辑区域
+        top10Data.forEach((user, index) => {
+            const rowHTML = `
+                <div class="editor-row">
+                    <label>${index + 1}</label>
+                    <input type="text" value="${user.name}" placeholder="姓名" oninput="updateName(${index}, this.value)">
+                    <input type="text" value="${formatScore(user.score)}" placeholder="分数" oninput="updateScore(${index}, this.value)" style="width:80px; text-align:right;">
+                </div>
+            `;
+            editorContainer.insertAdjacentHTML('beforeend', rowHTML);
+        });
+
+        updateData();
+
+        function updateName(index, newName) {
+            top10Data[index].name = newName;
+            updateData();
+        }
+
+        function updateScore(index, newFormattedScore) {
+            top10Data[index].score = unformatScore(newFormattedScore);
+            updateData();
+        }
+
+        // 生成海报并下载
+        function generatePoster() {
+            const posterElement = document.getElementById('poster');
+            const btn = document.querySelector('.btn-generate');
+            btn.innerText = "生成中...";
+
+            html2canvas(posterElement, {
+                scale: 3, // 提高到3倍保证超清
+                useCORS: true,
+                backgroundColor: '#0f172a',
+                logging: false,
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = 'MetaMonitor积分排行榜海报.png';
+                link.href = imgData;
+                link.click();
+                btn.innerText = "📸 点击生成海报并下载";
+            }).catch(err => {
+                console.error("生成海报失败:", err);
+                alert("生成失败，请检查浏览器兼容性");
+                btn.innerText = "📸 点击生成海报并下载";
+            });
+        }
+    </script>
+</body>
+</html>

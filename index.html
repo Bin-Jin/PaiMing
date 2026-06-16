@@ -146,6 +146,20 @@
             flex-shrink: 0;
         }
 
+        /* 新增并列排名输入框的样式 */
+        .editor-row input.rank-input {
+            width: 40px;
+            flex-grow: 0; /* 防止被拉伸 */
+            text-align: center;
+            padding: 10px 0;
+            font-weight: 900;
+            color: #ffd700;
+            background-color: #1e2532;
+            border: 1px solid #30363d;
+            flex-shrink: 0;
+            min-width: 40px;
+        }
+
         .editor-row input {
             flex-grow: 1;
             padding: 10px;
@@ -160,6 +174,40 @@
 
         .editor-row input:focus {
             border-color: #ffd700;
+        }
+
+        /* 新增：添加行与删除行按钮样式 */
+        .btn-add {
+            border: 1px dashed #30363d;
+            color: #8b949e;
+            background-color: transparent;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+            transition: all 0.2s;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        .btn-add:hover {
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 14px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+        .btn-delete:hover {
+            opacity: 1;
         }
 
         /* 按钮样式 */
@@ -438,7 +486,7 @@
 
     <div class="editor-container">
         <h2>📊 数据编辑器</h2>
-        <p style="color:#d1d8e0; font-size:13px; margin:0 0 15px 0; opacity:0.8">修改下方信息，右侧海报将实时更新效果。</p>
+        <p style="color:#d1d8e0; font-size:13px; margin:0 0 15px 0; opacity:0.8">修改下方信息，右侧海报将实时更新。<strong>修改最左侧数字即可实现并列</strong>。</p>
         
         <!-- 新增的主题编辑区域 -->
         <div class="editor-header-settings">
@@ -462,6 +510,10 @@
         <div id="editorRows">
             <!-- JS自动渲染 -->
         </div>
+        
+        <!-- 新增添加行按钮 -->
+        <button class="btn-add" onclick="addRow()">➕ 添加一行排名</button>
+
         <button class="btn-generate" onclick="generatePoster()">📸 点击生成海报并下载</button>
     </div>
 
@@ -538,18 +590,18 @@
     </div>
 
     <script>
-        // 1. 初始前十名积分数据
+        // 1. 初始前十名积分数据（加入 rank 字段以支持并列）
         const top10Data = [
-            { name: "Quantum_Core", score: 99840 },
-            { name: "CyberNinja", score: 87520 },
-            { name: "Data_Oracle", score: 81200 },
-            { name: "Neon_Striker", score: 79150 },
-            { name: "Void_Walker", score: 74300 },
-            { name: "System_Admin", score: 68900 },
-            { name: "Glitch_Hunter", score: 65420 },
-            { name: "Node_Master", score: 61000 },
-            { name: "Packet_Sniffer", score: 58200 },
-            { name: "Binary_Ghost", score: 52100 }
+            { rank: 1, name: "", score:  },
+            { rank: 2, name: "", score:  },
+            { rank: 3, name: "", score:  },
+            { rank: 4, name: "", score:  },
+            { rank: 5, name: "", score:  },
+            { rank: 6, name: "", score:  },
+            { rank: 7, name: "", score:  },
+            { rank: 8, name: "", score:  },
+            { rank: 9, name: "", score:  },
+            { rank: 10, name: "", score:  }
         ];
 
         // 格式化数字
@@ -600,16 +652,18 @@
             top10Data.forEach((user, index) => {
                 const li = document.createElement('li');
                 
-                if (index === 0) li.classList.add('rank-row-1');
-                else if (index === 1) li.classList.add('rank-row-2');
-                else if (index === 2) li.classList.add('rank-row-3');
+                // 根据 rank 字段判断前三名样式，支持并列的 "1", "2", "3"
+                const currentRank = String(user.rank).trim();
+                if (currentRank === '1') li.classList.add('rank-row-1');
+                else if (currentRank === '2') li.classList.add('rank-row-2');
+                else if (currentRank === '3') li.classList.add('rank-row-3');
                 else li.classList.add('rank-row-4-10');
 
                 // 【修复核心】：将“左侧（名次+名字）”与“右侧（积分）”分开包裹
                 // 利用 li 自带的 justify-content: space-between 将积分完美推到最右侧并对齐
                 li.innerHTML = `
                     <div style="display: flex; align-items: center; flex-grow: 1; min-width: 0;">
-                        <div class="medal"><span style="transform: translateY(-1px); display: block;">${index + 1}</span></div>
+                        <div class="medal"><span style="transform: translateY(-1px); display: block;">${user.rank}</span></div>
                         <div class="rank-item-name">${user.name}</div>
                     </div>
                     <div class="rank-item-score">${formatScore(user.score)}</div>
@@ -619,18 +673,51 @@
         }
 
         // 渲染编辑区域
-        top10Data.forEach((user, index) => {
-            const rowHTML = `
-                <div class="editor-row">
-                    <label>${index + 1}</label>
-                    <input type="text" value="${user.name}" placeholder="姓名" oninput="updateName(${index}, this.value)">
-                    <input type="text" value="${formatScore(user.score)}" placeholder="分数" oninput="updateScore(${index}, this.value)" style="width:85px; text-align:right;">
-                </div>
-            `;
-            editorContainer.insertAdjacentHTML('beforeend', rowHTML);
-        });
+        function renderEditor() {
+            editorContainer.innerHTML = '';
+            top10Data.forEach((user, index) => {
+                const rowHTML = `
+                    <div class="editor-row">
+                        <input type="text" class="rank-input" value="${user.rank}" oninput="updateRank(${index}, this.value)" title="修改此项可实现并列">
+                        <input type="text" value="${user.name}" placeholder="姓名" oninput="updateName(${index}, this.value)">
+                        <input type="text" value="${formatScore(user.score)}" placeholder="分数" oninput="updateScore(${index}, this.value)" style="width:85px; text-align:right;">
+                        <button class="btn-delete" onclick="deleteRow(${index})" title="删除此行">✖</button>
+                    </div>
+                `;
+                editorContainer.insertAdjacentHTML('beforeend', rowHTML);
+            });
+        }
 
+        // 新增：添加一行功能
+        function addRow() {
+            // 自动计算下一个名次（如果最后一行是10，新加的就默认写11）
+            let nextRank = top10Data.length + 1;
+            if (top10Data.length > 0) {
+                const lastRank = parseInt(top10Data[top10Data.length - 1].rank);
+                if (!isNaN(lastRank)) nextRank = lastRank + 1;
+            }
+            
+            top10Data.push({ rank: nextRank, name: "", score: 0 });
+            renderEditor();
+            updateData();
+        }
+
+        // 新增：删除一行功能
+        function deleteRow(index) {
+            top10Data.splice(index, 1);
+            renderEditor();
+            updateData();
+        }
+
+        // 初始化
+        renderEditor();
         updateData();
+
+        // 更新名次的函数
+        function updateRank(index, newRank) {
+            top10Data[index].rank = newRank;
+            updateData();
+        }
 
         function updateName(index, newName) {
             top10Data[index].name = newName;
